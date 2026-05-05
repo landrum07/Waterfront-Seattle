@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Port of Everett — Waterfront Map</title>
+  <title>Seattle Waterfront Survey</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css">
   <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -238,7 +238,7 @@
 <body>
 
 <header>
-  <span class="header-title">Port of Everett — Waterfront Survey</span>
+  <span class="header-title">Seattle Waterfront Survey</span>
   <div class="header-meta">
     <a class="header-link" href="index.html">← list view</a>
     <span class="header-link" style="cursor:default;">map view</span>
@@ -274,34 +274,34 @@
 
 <script>
   // Portrait image: 892 x 5171
-  // Rotated 90° clockwise from original 5100 x 890
-  // Transformation: new X = old Y, new Y = 5100 - old X
+  // Rotated 90° counter-clockwise from original 5100 x 890
+  // Transformation: new X = 890 - old Y, new Y = old X
   const MAP_W = 892;
   const MAP_H = 5171;
 
   // Dots ordered top (Stop 9) to bottom (Stop 1)
   const dots = [
-    { scene: "9_Sculp_Park",       x: 430,  y: 4751, label: "Sculp Park",          stop: 9, tag: "" },
-    { scene: "8E_Clay_St",         x: 418,  y: 4390, label: "Clay St",             stop: 8, tag: "E" },
-    { scene: "8_Clay_St",          x: 493,  y: 4357, label: "Clay St",             stop: 8, tag: "" },
-    { scene: "8_Clay_St_Seawall",  x: 520,  y: 4355, label: "Clay St",             stop: 8, tag: "seawall" },
-    { scene: "7E_Vine_St",         x: 393,  y: 3601, label: "Vine St",             stop: 7, tag: "E" },
-    { scene: "7_Vine_St",          x: 494,  y: 3597, label: "Vine St",             stop: 7, tag: "" },
-    { scene: "7_Vine_St_Seawall",  x: 524,  y: 3600, label: "Vine St",             stop: 7, tag: "seawall" },
-    { scene: "6E_Wall_St",         x: 383,  y: 3229, label: "Wall St",             stop: 6, tag: "E" },
-    { scene: "6_Wall_St",          x: 465,  y: 3222, label: "Wall St",             stop: 6, tag: "" },
-    { scene: "5E_Bell_Ped_Bridge", x: 348,  y: 2349, label: "Bell St Ped Bridge",  stop: 5, tag: "E" },
-    { scene: "5_Bell_Ped_Bridge",  x: 425,  y: 2349, label: "Bell St Ped Bridge",  stop: 5, tag: "" },
-    { scene: "4E_Marriott",        x: 348,  y: 1833, label: "Marriott",            stop: 4, tag: "E" },
-    { scene: "4_Marriott",         x: 425,  y: 1833, label: "Marriott",            stop: 4, tag: "" },
-    { scene: "4_Mariott_Seawall",  x: 484,  y: 1832, label: "Marriott",            stop: 4, tag: "seawall" },
-    { scene: "3E_Lenora_St",       x: 349,  y: 1373, label: "Lenora St",           stop: 3, tag: "E" },
-    { scene: "3_Lenora_St",        x: 425,  y: 1372, label: "Lenora St",           stop: 3, tag: "" },
-    { scene: "3_Lenora_Seawall",   x: 464,  y: 1373, label: "Lenora St",           stop: 3, tag: "seawall" },
-    { scene: "2E_Bike_Crossing",   x: 349,  y: 799,  label: "Bike Crossing",       stop: 2, tag: "E" },
-    { scene: "2_Bike_Crossing",    x: 425,  y: 801,  label: "Bike Crossing",       stop: 2, tag: "" },
-    { scene: "2_Seawall",          x: 463,  y: 799,  label: "Bike Crossing",       stop: 2, tag: "seawall" },
-    { scene: "1_Overlook_2",       x: 315,  y: 282,  label: "Overlook",            stop: 1, tag: "" },
+    { scene: "9_Sculp_Park",       x: 460,  y: 349,  label: "Sculp Park",          stop: 9, tag: "" },
+    { scene: "8E_Clay_St",         x: 472,  y: 710,  label: "Clay St",             stop: 8, tag: "E" },
+    { scene: "8_Clay_St",          x: 397,  y: 743,  label: "Clay St",             stop: 8, tag: "" },
+    { scene: "8_Clay_St_Seawall",  x: 370,  y: 745,  label: "Clay St",             stop: 8, tag: "seawall" },
+    { scene: "7E_Vine_St",         x: 497,  y: 1499, label: "Vine St",             stop: 7, tag: "E" },
+    { scene: "7_Vine_St",          x: 396,  y: 1503, label: "Vine St",             stop: 7, tag: "" },
+    { scene: "7_Vine_St_Seawall",  x: 366,  y: 1500, label: "Vine St",             stop: 7, tag: "seawall" },
+    { scene: "6E_Wall_St",         x: 507,  y: 1871, label: "Wall St",             stop: 6, tag: "E" },
+    { scene: "6_Wall_St",          x: 425,  y: 1878, label: "Wall St",             stop: 6, tag: "" },
+    { scene: "5E_Bell_Ped_Bridge", x: 542,  y: 2751, label: "Bell St Ped Bridge",  stop: 5, tag: "E" },
+    { scene: "5_Bell_Ped_Bridge",  x: 465,  y: 2751, label: "Bell St Ped Bridge",  stop: 5, tag: "" },
+    { scene: "4E_Marriott",        x: 542,  y: 3267, label: "Marriott",            stop: 4, tag: "E" },
+    { scene: "4_Marriott",         x: 465,  y: 3267, label: "Marriott",            stop: 4, tag: "" },
+    { scene: "4_Mariott_Seawall",  x: 406,  y: 3268, label: "Marriott",            stop: 4, tag: "seawall" },
+    { scene: "3E_Lenora_St",       x: 541,  y: 3727, label: "Lenora St",           stop: 3, tag: "E" },
+    { scene: "3_Lenora_St",        x: 465,  y: 3728, label: "Lenora St",           stop: 3, tag: "" },
+    { scene: "3_Lenora_Seawall",   x: 426,  y: 3727, label: "Lenora St",           stop: 3, tag: "seawall" },
+    { scene: "2E_Bike_Crossing",   x: 541,  y: 4301, label: "Bike Crossing",       stop: 2, tag: "E" },
+    { scene: "2_Bike_Crossing",    x: 465,  y: 4299, label: "Bike Crossing",       stop: 2, tag: "" },
+    { scene: "2_Seawall",          x: 427,  y: 4301, label: "Bike Crossing",       stop: 2, tag: "seawall" },
+    { scene: "1_Overlook_2",       x: 575,  y: 4818, label: "Overlook",            stop: 1, tag: "" },
   ];
 
   const sceneFiles = {
