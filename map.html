@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Port of Everett — Waterfront Map</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css">
+  <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400&family=Libre+Baskerville:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ink: #1a1a18;
+      --paper: #f4f1eb;
+      --rust: #CD2354;
+      --mist: #9aab9e;
+      --rule: rgba(26,26,24,0.12);
+    }
+
+    body {
+      background: var(--ink);
+      color: var(--paper);
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      padding: 14px 24px 12px;
+      border-bottom: 1px solid rgba(244,241,235,0.1);
+      flex-shrink: 0;
+    }
+
+    .header-title {
+      font-family: 'Libre Baskerville', serif;
+      font-style: italic;
+      font-size: 17px;
+      color: var(--paper);
+    }
+
+    .header-meta {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .header-link {
+      font-size: 11px;
+      color: var(--mist);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+    .header-link:hover { color: var(--paper); }
+
+    /* MAP AREA */
+    .map-wrap {
+      flex: 1;
+      overflow: auto;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .map-container {
+      position: relative;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    .map-container img {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      max-height: calc(100dvh - 120px);
+    }
+
+    .dot-layer {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+    }
+
+    /* DOTS */
+    .dot {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2.5px solid #CD2354;
+      background: white;
+      cursor: pointer;
+      pointer-events: all;
+      transition: transform 0.15s, box-shadow 0.15s;
+      z-index: 10;
+    }
+
+    .dot:hover {
+      transform: translate(-50%, -50%) scale(1.4);
+      box-shadow: 0 0 0 3px rgba(205,35,84,0.3);
+    }
+
+    .dot.active {
+      background: #CD2354;
+      transform: translate(-50%, -50%) scale(1.3);
+      box-shadow: 0 0 0 3px rgba(205,35,84,0.4);
+    }
+
+    /* TOOLTIP */
+    .dot-tooltip {
+      position: absolute;
+      background: rgba(26,26,24,0.92);
+      color: var(--paper);
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      padding: 5px 9px;
+      border-radius: 2px;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(-4px);
+      transition: opacity 0.15s, transform 0.15s;
+      z-index: 20;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%) translateY(-4px);
+    }
+
+    .dot:hover .dot-tooltip {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* LEGEND */
+    .legend {
+      position: absolute;
+      bottom: 32px;
+      right: 32px;
+      background: rgba(26,26,24,0.85);
+      border: 1px solid rgba(244,241,235,0.1);
+      padding: 12px 16px;
+      border-radius: 2px;
+      backdrop-filter: blur(4px);
+      pointer-events: none;
+    }
+
+    .legend-title {
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--mist);
+      margin-bottom: 8px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: var(--paper);
+      margin-bottom: 5px;
+    }
+
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 2px solid #CD2354;
+      background: white;
+      flex-shrink: 0;
+    }
+
+    /* VIEWER MODAL */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(26,26,24,0.85);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+      backdrop-filter: blur(6px);
+    }
+
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal {
+      width: min(860px, 92vw);
+      background: var(--ink);
+      border: 1px solid rgba(244,241,235,0.15);
+      border-radius: 3px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid rgba(244,241,235,0.1);
+      flex-shrink: 0;
+    }
+
+    .modal-title {
+      font-family: 'Libre Baskerville', serif;
+      font-style: italic;
+      font-size: 15px;
+      color: var(--paper);
+    }
+
+    .modal-sub {
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--mist);
+      margin-top: 2px;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--mist);
+      font-size: 20px;
+      cursor: pointer;
+      padding: 4px 8px;
+      transition: color 0.15s;
+      font-family: 'DM Mono', monospace;
+    }
+    .modal-close:hover { color: var(--paper); }
+
+    .modal-viewer {
+      height: 480px;
+      position: relative;
+    }
+
+    #pannellumViewer {
+      width: 100%;
+      height: 100%;
+    }
+
+    .modal-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      border-top: 1px solid rgba(244,241,235,0.1);
+    }
+
+    .modal-nav-btn {
+      background: none;
+      border: 1px solid rgba(244,241,235,0.2);
+      color: var(--paper);
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      padding: 6px 14px;
+      cursor: pointer;
+      border-radius: 2px;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .modal-nav-btn:hover { background: rgba(244,241,235,0.08); border-color: rgba(244,241,235,0.4); }
+    .modal-nav-btn:disabled { opacity: 0.25; cursor: default; }
+
+    .modal-counter {
+      font-size: 11px;
+      color: var(--mist);
+      letter-spacing: 0.06em;
+    }
+
+    /* Pannellum overrides */
+    .pnlm-ui .pnlm-about-msg,
+    .pnlm-ui .pnlm-panorama-info { display: none !important; }
+  </style>
+</head>
+<body>
+
+<header>
+  <span class="header-title">Port of Everett — Waterfront Survey</span>
+  <div class="header-meta">
+    <a class="header-link" href="index.html">← list view</a>
+    <span class="header-link" style="cursor:default;">map view</span>
+  </div>
+</header>
+
+<div class="map-wrap">
+  <div class="map-container" id="mapContainer">
+    <img src="images/Seattle_Waterfront_Map.jpg" id="mapImg" alt="Seattle Waterfront Map">
+    <div class="dot-layer" id="dotLayer"></div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-title">Dot position</div>
+    <div class="legend-item"><div class="legend-dot"></div> Street / alt angle (E)</div>
+    <div class="legend-item"><div class="legend-dot"></div> Waterfront path</div>
+    <div class="legend-item"><div class="legend-dot"></div> Seawall view</div>
+  </div>
+</div>
+
+<!-- VIEWER MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modalTitle">—</div>
+        <div class="modal-sub" id="modalSub">360° · drag to explore</div>
+      </div>
+      <button class="modal-close" id="modalClose">✕</button>
+    </div>
+    <div class="modal-viewer">
+      <div id="pannellumViewer"></div>
+    </div>
+    <div class="modal-nav">
+      <button class="modal-nav-btn" id="modalPrev">← prev</button>
+      <span class="modal-counter" id="modalCounter"></span>
+      <button class="modal-nav-btn" id="modalNext">next →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // MAP: 5100 x 890px original. Y coords from Illustrator (top-left origin, same as browser)
+  const MAP_W = 5100;
+  const MAP_H = 890;
+
+  const dots = [
+    // Stop 1 — Overlook (far right)
+    { scene: "1_Overlook_2",       x: 4818, y: 315, label: "Overlook",           stop: 1, tag: "" },
+
+    // Stop 2 — Bike Crossing
+    { scene: "2E_Bike_Crossing",   x: 4301, y: 349, label: "Bike Crossing",      stop: 2, tag: "E" },
+    { scene: "2_Bike_Crossing",    x: 4299, y: 425, label: "Bike Crossing",      stop: 2, tag: "" },
+    { scene: "2_Seawall",          x: 4301, y: 463, label: "Bike Crossing",      stop: 2, tag: "seawall" },
+
+    // Stop 3 — Lenora St
+    { scene: "3E_Lenora_St",       x: 3727, y: 349, label: "Lenora St",          stop: 3, tag: "E" },
+    { scene: "3_Lenora_St",        x: 3728, y: 425, label: "Lenora St",          stop: 3, tag: "" },
+    { scene: "3_Lenora_Seawall",   x: 3727, y: 464, label: "Lenora St",         stop: 3, tag: "seawall" },
+
+    // Stop 4 — Marriott
+    { scene: "4E_Marriott",        x: 3267, y: 348, label: "Marriott",           stop: 4, tag: "E" },
+    { scene: "4_Marriott",         x: 3267, y: 425, label: "Marriott",           stop: 4, tag: "" },
+    { scene: "4_Mariott_Seawall",  x: 3268, y: 484, label: "Marriott",          stop: 4, tag: "seawall" },
+
+    // Stop 5 — Bell St Ped Bridge
+    { scene: "5E_Bell_Ped_Bridge", x: 2751, y: 348, label: "Bell St Ped Bridge", stop: 5, tag: "E" },
+    { scene: "5_Bell_Ped_Bridge",  x: 2751, y: 425, label: "Bell St Ped Bridge", stop: 5, tag: "" },
+
+    // Stop 6 — Wall St
+    { scene: "6E_Wall_St",         x: 1871, y: 383, label: "Wall St",            stop: 6, tag: "E" },
+    { scene: "6_Wall_St",          x: 1878, y: 465, label: "Wall St",            stop: 6, tag: "" },
+
+    // Stop 7 — Vine St
+    { scene: "7E_Vine_St",         x: 1499, y: 393, label: "Vine St",            stop: 7, tag: "E" },
+    { scene: "7_Vine_St",          x: 1503, y: 494, label: "Vine St",            stop: 7, tag: "" },
+    { scene: "7_Vine_St_Seawall",  x: 1500, y: 524, label: "Vine St",           stop: 7, tag: "seawall" },
+
+    // Stop 8 — Clay St
+    { scene: "8E_Clay_St",         x: 710,  y: 418, label: "Clay St",            stop: 8, tag: "E" },
+    { scene: "8_Clay_St",          x: 743,  y: 493, label: "Clay St",            stop: 8, tag: "" },
+    { scene: "8_Clay_St_Seawall",  x: 745,  y: 520, label: "Clay St",           stop: 8, tag: "seawall" },
+
+    // Stop 9 — Sculp Park (far left)
+    { scene: "9_Sculp_Park",       x: 349,  y: 430, label: "Sculp Park",         stop: 9, tag: "" },
+  ];
+
+  const sceneFiles = {
+    "1_Overlook_2":       "1_Overlook 2.jpg",
+    "2E_Bike_Crossing":   "2E_Bike Crossing.jpg",
+    "2_Bike_Crossing":    "2_Bike Crossing.jpg",
+    "2_Seawall":          "2_Seawall.jpg",
+    "3E_Lenora_St":       "3E_Lenora St.jpg",
+    "3_Lenora_Seawall":   "3_ Lenora Seawall.jpg",
+    "3_Lenora_St":        "3_Lenora St.jpg",
+    "4E_Marriott":        "4E_Marriott.jpg",
+    "4_Mariott_Seawall":  "4_Mariott Seawall.jpg",
+    "4_Marriott":         "4_Marriott.jpg",
+    "5E_Bell_Ped_Bridge": "5E_Bell St Ped Bridge.jpg",
+    "5_Bell_Ped_Bridge":  "5_Bell St Ped Bridge.jpg",
+    "6E_Wall_St":         "6E_Wall St.jpg",
+    "6_Wall_St":          "6_Wall St.jpg",
+    "7E_Vine_St":         "7E_Vine St.jpg",
+    "7_Vine_St_Seawall":  "7_Vine St Seawall.jpg",
+    "7_Vine_St":          "7_Vine St.jpg",
+    "8E_Clay_St":         "8E_Clay St.jpg",
+    "8_Clay_St_Seawall":  "8_Clay St Seawall.jpg",
+    "8_Clay_St":          "8_Clay St.jpg",
+    "9_Sculp_Park":       "9_Sculp Park.jpg",
+  };
+
+  // Build dots scaled to rendered image size
+  const mapImg = document.getElementById('mapImg');
+  const dotLayer = document.getElementById('dotLayer');
+  let activeDotEl = null;
+  let viewer = null;
+  let currentDotIndex = -1;
+
+  function getScale() {
+    return mapImg.clientWidth / MAP_W;
+  }
+
+  function buildDots() {
+    dotLayer.innerHTML = '';
+    const scale = getScale();
+    dots.forEach((dot, i) => {
+      const el = document.createElement('div');
+      el.className = 'dot';
+      el.style.left = (dot.x * scale) + 'px';
+      el.style.top = (dot.y * scale) + 'px';
+
+      const tagLabel = dot.tag === 'E' ? 'alt angle' : dot.tag === 'seawall' ? 'seawall' : 'path';
+      const tooltip = document.createElement('div');
+      tooltip.className = 'dot-tooltip';
+      tooltip.textContent = `Stop ${dot.stop} · ${dot.label}${dot.tag ? ' · ' + tagLabel : ''}`;
+      el.appendChild(tooltip);
+
+      el.addEventListener('click', () => openModal(i, el));
+      dotLayer.appendChild(el);
+    });
+  }
+
+  function openModal(index, dotEl) {
+    currentDotIndex = index;
+    const dot = dots[index];
+
+    // Update active dot
+    if (activeDotEl) activeDotEl.classList.remove('active');
+    activeDotEl = dotEl;
+    dotEl.classList.add('active');
+
+    // Update modal text
+    const tagLabel = dot.tag === 'E' ? 'alt angle · ' : dot.tag === 'seawall' ? 'seawall · ' : '';
+    document.getElementById('modalTitle').textContent = `Stop ${dot.stop} — ${dot.label}`;
+    document.getElementById('modalSub').textContent = `${tagLabel}360° · drag to explore`;
+    document.getElementById('modalCounter').textContent = `${index + 1} of ${dots.length}`;
+
+    // Nav buttons
+    document.getElementById('modalPrev').disabled = index === 0;
+    document.getElementById('modalNext').disabled = index === dots.length - 1;
+
+    // Load pannellum
+    if (viewer) { viewer.destroy(); viewer = null; }
+    viewer = pannellum.viewer('pannellumViewer', {
+      type: 'equirectangular',
+      panorama: `images/${sceneFiles[dot.scene]}`,
+      autoLoad: true,
+      showControls: false,
+      compass: false,
+      hfov: 100,
+      minHfov: 50,
+      maxHfov: 120,
+    });
+
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('open');
+    if (activeDotEl) activeDotEl.classList.remove('active');
+    activeDotEl = null;
+    if (viewer) { viewer.destroy(); viewer = null; }
+  }
+
+  document.getElementById('modalClose').addEventListener('click', closeModal);
+  document.getElementById('modalOverlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('modalOverlay')) closeModal();
+  });
+
+  document.getElementById('modalPrev').addEventListener('click', () => {
+    if (currentDotIndex > 0) {
+      const allDots = dotLayer.querySelectorAll('.dot');
+      openModal(currentDotIndex - 1, allDots[currentDotIndex - 1]);
+    }
+  });
+
+  document.getElementById('modalNext').addEventListener('click', () => {
+    if (currentDotIndex < dots.length - 1) {
+      const allDots = dotLayer.querySelectorAll('.dot');
+      openModal(currentDotIndex + 1, allDots[currentDotIndex + 1]);
+    }
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeModal();
+  });
+
+  // Build dots on load and resize
+  mapImg.addEventListener('load', buildDots);
+  if (mapImg.complete) buildDots();
+  window.addEventListener('resize', buildDots);
+</script>
+
+</body>
+</html>
