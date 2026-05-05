@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Port of Everett — Waterfront Survey</title>
+  <title>Seattle Waterfront Survey</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css">
   <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -49,11 +49,24 @@
     }
 
     .header-meta {
+      display: flex;
+      gap: 20px;
+      align-items: center;
       font-size: 11px;
       color: var(--mist);
       letter-spacing: 0.08em;
       text-transform: uppercase;
     }
+
+    .header-link {
+      font-size: 11px;
+      color: var(--mist);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+    .header-link:hover { color: var(--ink); }
 
     .main {
       display: flex;
@@ -221,8 +234,11 @@
 <body>
 
 <header>
-  <span class="header-title">Port of Everett — Waterfront Survey</span>
-  <span class="header-meta">21 locations · May 2026</span>
+  <span class="header-title">Seattle Waterfront Survey</span>
+  <div class="header-meta">
+    <span class="header-link" style="cursor:default;">list view</span>
+    <a class="header-link" href="map.html">map view →</a>
+  </div>
 </header>
 
 <div class="main">
