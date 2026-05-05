@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Port of Everett — Waterfront Survey</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css">
+  <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400&family=Libre+Baskerville:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ink: #1a1a18;
+      --paper: #f4f1eb;
+      --rust: #8b4a2b;
+      --mist: #9aab9e;
+      --rule: rgba(26,26,24,0.12);
+      --sidebar: 280px;
+    }
+
+    body {
+      background: var(--paper);
+      color: var(--ink);
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      padding: 14px 24px 12px;
+      border-bottom: 1px solid var(--rule);
+      flex-shrink: 0;
+    }
+
+    .header-title {
+      font-family: 'Libre Baskerville', serif;
+      font-style: italic;
+      font-size: 17px;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+    }
+
+    .header-meta {
+      font-size: 11px;
+      color: var(--mist);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .main {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* SIDEBAR */
+    .sidebar {
+      width: var(--sidebar);
+      flex-shrink: 0;
+      border-right: 1px solid var(--rule);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .sidebar-label {
+      padding: 12px 16px 10px;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--mist);
+      border-bottom: 1px solid var(--rule);
+      flex-shrink: 0;
+    }
+
+    .scene-list {
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .scene-group {
+      border-bottom: 1px solid var(--rule);
+    }
+
+    .scene-group-label {
+      padding: 10px 16px 6px;
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--rust);
+    }
+
+    .scene-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 16px;
+      cursor: pointer;
+      transition: background 0.15s;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      color: var(--ink);
+    }
+
+    .scene-item:hover { background: rgba(26,26,24,0.04); }
+
+    .scene-item.active {
+      background: var(--ink);
+      color: var(--paper);
+    }
+
+    .scene-item.active .scene-dot { background: var(--paper); }
+
+    .scene-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--mist);
+      flex-shrink: 0;
+    }
+
+    .scene-item.active .scene-dot {
+      background: var(--rust);
+    }
+
+    .scene-name {
+      flex: 1;
+      line-height: 1.3;
+    }
+
+    .scene-tag {
+      font-size: 10px;
+      color: var(--mist);
+      letter-spacing: 0.06em;
+    }
+
+    .scene-item.active .scene-tag { color: rgba(244,241,235,0.5); }
+
+    /* VIEWER */
+    .viewer-wrap {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #panorama {
+      width: 100%;
+      height: 100%;
+    }
+
+    .viewer-overlay {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      background: rgba(26,26,24,0.7);
+      color: var(--paper);
+      padding: 10px 14px;
+      border-radius: 2px;
+      pointer-events: none;
+      backdrop-filter: blur(4px);
+    }
+
+    .overlay-location {
+      font-family: 'Libre Baskerville', serif;
+      font-style: italic;
+      font-size: 15px;
+      margin-bottom: 2px;
+    }
+
+    .overlay-sub {
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(244,241,235,0.55);
+    }
+
+    .nav-arrows {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .nav-btn {
+      width: 38px;
+      height: 38px;
+      background: rgba(26,26,24,0.7);
+      border: none;
+      border-radius: 2px;
+      color: var(--paper);
+      cursor: pointer;
+      font-size: 16px;
+      backdrop-filter: blur(4px);
+      transition: background 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .nav-btn:hover { background: rgba(26,26,24,0.9); }
+    .nav-btn:disabled { opacity: 0.3; cursor: default; }
+
+    /* Pannellum overrides */
+    .pnlm-ui .pnlm-about-msg,
+    .pnlm-ui .pnlm-panorama-info { display: none !important; }
+  </style>
+</head>
+<body>
+
+<header>
+  <span class="header-title">Port of Everett — Waterfront Survey</span>
+  <span class="header-meta">21 locations · May 2026</span>
+</header>
+
+<div class="main">
+
+  <nav class="sidebar">
+    <div class="sidebar-label">Locations</div>
+    <div class="scene-list" id="sceneList"></div>
+  </nav>
+
+  <div class="viewer-wrap">
+    <div id="panorama"></div>
+    <div class="viewer-overlay">
+      <div class="overlay-location" id="overlayLocation">—</div>
+      <div class="overlay-sub" id="overlaySub">360° · drag to explore</div>
+    </div>
+    <div class="nav-arrows">
+      <button class="nav-btn" id="prevBtn" title="Previous">&#8592;</button>
+      <button class="nav-btn" id="nextBtn" title="Next">&#8594;</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const scenes = [
+    { id: "1_Overlook_2",       file: "1_Overlook 2.jpg",          label: "Overlook",         stop: "1", tag: "" },
+    { id: "2E_Bike_Crossing",   file: "2E_Bike Crossing.jpg",      label: "Bike Crossing",    stop: "2", tag: "E" },
+    { id: "2_Bike_Crossing",    file: "2_Bike Crossing.jpg",       label: "Bike Crossing",    stop: "2", tag: "" },
+    { id: "2_Seawall",          file: "2_Seawall.jpg",             label: "Seawall",          stop: "2", tag: "seawall" },
+    { id: "3E_Lenora_St",       file: "3E_Lenora St.jpg",          label: "Lenora St",        stop: "3", tag: "E" },
+    { id: "3_Lenora_Seawall",   file: "3_ Lenora Seawall.jpg",     label: "Lenora Seawall",   stop: "3", tag: "seawall" },
+    { id: "3_Lenora_St",        file: "3_Lenora St.jpg",           label: "Lenora St",        stop: "3", tag: "" },
+    { id: "4E_Marriott",        file: "4E_Marriott.jpg",           label: "Marriott",         stop: "4", tag: "E" },
+    { id: "4_Mariott_Seawall",  file: "4_Mariott Seawall.jpg",     label: "Marriott Seawall", stop: "4", tag: "seawall" },
+    { id: "4_Marriott",         file: "4_Marriott.jpg",            label: "Marriott",         stop: "4", tag: "" },
+    { id: "5E_Bell_Ped_Bridge", file: "5E_Bell St Ped Bridge.jpg", label: "Bell St Ped Bridge", stop: "5", tag: "E" },
+    { id: "5_Bell_Ped_Bridge",  file: "5_Bell St Ped Bridge.jpg",  label: "Bell St Ped Bridge", stop: "5", tag: "" },
+    { id: "6E_Wall_St",         file: "6E_Wall St.jpg",            label: "Wall St",          stop: "6", tag: "E" },
+    { id: "6_Wall_St",          file: "6_Wall St.jpg",             label: "Wall St",          stop: "6", tag: "" },
+    { id: "7E_Vine_St",         file: "7E_Vine St.jpg",            label: "Vine St",          stop: "7", tag: "E" },
+    { id: "7_Vine_St_Seawall",  file: "7_Vine St Seawall.jpg",     label: "Vine St Seawall",  stop: "7", tag: "seawall" },
+    { id: "7_Vine_St",          file: "7_Vine St.jpg",             label: "Vine St",          stop: "7", tag: "" },
+    { id: "8E_Clay_St",         file: "8E_Clay St.jpg",            label: "Clay St",          stop: "8", tag: "E" },
+    { id: "8_Clay_St_Seawall",  file: "8_Clay St Seawall.jpg",     label: "Clay St Seawall",  stop: "8", tag: "seawall" },
+    { id: "8_Clay_St",          file: "8_Clay St.jpg",             label: "Clay St",          stop: "8", tag: "" },
+    { id: "9_Sculp_Park",       file: "9_Sculp Park.jpg",          label: "Sculp Park",       stop: "9", tag: "" },
+  ];
+
+  // Group by stop number
+  const groups = {};
+  scenes.forEach(s => {
+    if (!groups[s.stop]) groups[s.stop] = [];
+    groups[s.stop].push(s);
+  });
+
+  // Build sidebar
+  const list = document.getElementById('sceneList');
+  Object.entries(groups).forEach(([stop, items]) => {
+    const group = document.createElement('div');
+    group.className = 'scene-group';
+    const glabel = document.createElement('div');
+    glabel.className = 'scene-group-label';
+    glabel.textContent = `Stop ${stop}`;
+    group.appendChild(glabel);
+    items.forEach(scene => {
+      const btn = document.createElement('button');
+      btn.className = 'scene-item';
+      btn.dataset.id = scene.id;
+      const tagText = scene.tag === 'E' ? 'alt angle' : scene.tag === 'seawall' ? 'seawall' : '';
+      btn.innerHTML = `
+        <span class="scene-dot"></span>
+        <span class="scene-name">${scene.label}</span>
+        ${tagText ? `<span class="scene-tag">${tagText}</span>` : ''}
+      `;
+      btn.addEventListener('click', () => loadScene(scene.id));
+      group.appendChild(btn);
+    });
+    list.appendChild(group);
+  });
+
+  // Pannellum init
+  let viewer = null;
+  let currentIndex = 0;
+
+  function loadScene(id) {
+    const idx = scenes.findIndex(s => s.id === id);
+    if (idx < 0) return;
+    currentIndex = idx;
+    const scene = scenes[idx];
+
+    // Update sidebar active state
+    document.querySelectorAll('.scene-item').forEach(el => {
+      el.classList.toggle('active', el.dataset.id === id);
+    });
+
+    // Scroll active item into view
+    const activeEl = document.querySelector(`.scene-item[data-id="${id}"]`);
+    if (activeEl) activeEl.scrollIntoView({ block: 'nearest' });
+
+    // Update overlay
+    document.getElementById('overlayLocation').textContent = scene.label;
+    const tagLabel = scene.tag === 'E' ? 'alt angle · 360°' : scene.tag === 'seawall' ? 'seawall view · 360°' : '360° · drag to explore';
+    document.getElementById('overlaySub').textContent = `Stop ${scene.stop} · ${tagLabel}`;
+
+    // Update nav buttons
+    document.getElementById('prevBtn').disabled = idx === 0;
+    document.getElementById('nextBtn').disabled = idx === scenes.length - 1;
+
+    // Load panorama
+    if (viewer) {
+      viewer.destroy();
+      viewer = null;
+    }
+
+    viewer = pannellum.viewer('panorama', {
+      type: 'equirectangular',
+      panorama: `images/${scene.file}`,
+      autoLoad: true,
+      showControls: false,
+      compass: false,
+      mouseZoom: true,
+      hfov: 100,
+      minHfov: 50,
+      maxHfov: 120,
+      pitch: 0,
+      yaw: 0,
+    });
+  }
+
+  document.getElementById('prevBtn').addEventListener('click', () => {
+    if (currentIndex > 0) loadScene(scenes[currentIndex - 1].id);
+  });
+
+  document.getElementById('nextBtn').addEventListener('click', () => {
+    if (currentIndex < scenes.length - 1) loadScene(scenes[currentIndex + 1].id);
+  });
+
+  // Load first scene
+  loadScene(scenes[0].id);
+</script>
+
+</body>
+</html>
